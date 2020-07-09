@@ -1,0 +1,86 @@
+Option Explicit
+
+Sub Macro1()
+'
+' Macro1 Macro
+'
+
+'
+    Dim fPath As String, fName As String, i As Integer, path As String
+    Dim objOutlook As Object, objMail As Object, faxNum As String, faxCheck As Variant, pathCheck As Variant
+    
+    faxCheck = vbNo
+    
+    Set objOutlook = CreateObject("Outlook.Application")
+    Set objMail = objOutlook.CreateItem(0)
+    
+    faxNum = Range("B20").Value
+
+    Do While faxCheck = vbNo
+    
+        faxCheck = MsgBox("Is " & faxNum & " the correct fax number?", vbYesNo)
+        
+        If faxCheck = vbNo Then
+            faxNum = InputBox("What is the correct Fax Number?")
+        End If
+    Loop
+    
+    faxNum = faxCleaner(faxNum)
+    
+    fPath = "\\labshared\neonatal1\MS_MS\PKU\" & Format(Now(), "YYYY") & "\" & Format(Now(), "MM") _
+        & " - " & Format(Now(), "MMMM") & "\" & Format(Now(), "MM.DD.YYYY") & "\"
+
+    
+    path = Dir(fPath)
+    
+    Do While path <> ""
+        i = i + 1
+        path = Dir()
+    Loop
+    
+    fName = "PKU " & Application.ActiveSheet.Name & " " & i + 1 & ".pdf"
+    
+    pathCheck = VBA.FileSystem.Dir(fPath, vbDirectory)
+    
+    If pathCheck = VBA.Constants.vbNullString Then
+        MkDir (fPath)
+    End If
+    
+    fPath = fPath & fName
+
+    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:= _
+        fPath, Quality:=xlQualityStandard, _
+        IncludeDocProperties:=True, IgnorePrintAreas:=False, OpenAfterPublish:= _
+        True
+        
+    With objMail
+        .To = faxNum & "@fax.kdheks.gov"
+        .Subject = "PKU Monitoring Result"
+        .Body = "please see the attached PKU monitoring report." & vbCrLf & _
+        vbCrLf & "Thanks," & vbCrLf & vbCrLf & "KDHE Health Chemistry Lab" & vbCrLf & vbCrLf & _
+        "CONFIDENTIALITY NOTICE - This e-mail transmission from the Kansas Department of Health and Environment, and any documents, files or previous e-mail messages attached to it may contain information that is confidential or legally privileged.  If you are not the intended recipient, or a person responsible for delivering it to the intended recipient, you are hereby notified that you must not read this transmission and that any disclosure, copying, printing, distribution or use of any of the information contained in or attached to this transmission is strictly prohibited. A misdirected transmission does not constitute waiver of any applicable privilege. If you have received this transmission in error, please immediately notify the sender by telephone or return e-mail and delete the original transmission and its attachments without reading or saving in any manner. Thank you."
+        .Attachments.Add fPath
+        .Display
+    End With
+    
+End Sub
+
+Function faxCleaner(text As String) As String
+
+    Dim Output As String
+    Dim c As Variant
+    Dim i As Integer
+        
+    For i = 1 To Len(text)
+        c = Mid(text, i, 1)
+        
+        If (c >= "0" And c <= "9") Then
+            Output = Output & c
+        End If
+        
+    Next
+    
+    faxCleaner = Output
+    
+End Function
+
